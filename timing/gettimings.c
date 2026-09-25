@@ -5,7 +5,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-
+/// returns the number of nanoseconds that have elapsed since an arbitrary time
+long long nsecs() {
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return t.tv_sec*1000000000 + t.tv_nsec;
+}
 
 __attribute__((noinline)) void empty() {
     __asm__("");
@@ -48,10 +53,11 @@ __attribute__((noinline)) void process_terminated() {
         exit(0);
     } else {
         printf("This is parent\n");
-        const struct timespec *duration = 500;
-        const struct timespec *unslept;
 
-        nanosleep(duration, unslept);
+        const struct timespec duration = {.tv_sec = 0, .tv_nsec = 500};
+        const struct timespec *duration_ptr = &duration;
+
+        nanosleep(duration_ptr, NULL);
         int status;
         waitpid(pid, &status, 0);
         printf("Child exited with status code: %d\n", WEXITSTATUS(status));
@@ -89,6 +95,9 @@ __attribute__((noinline)) void mk_rm_dir() {
 
 
 int main(int argc, char *argv[]) {
+    long nothing_time = nsecs();
+    printf("Nothing: %ld\n", nothing_time);
+
     short unsigned int seed_num[6] = {155, 0, 155, 47, 201, 39};
     seed48(seed_num);
 
