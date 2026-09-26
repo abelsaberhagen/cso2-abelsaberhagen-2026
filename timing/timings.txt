@@ -1,0 +1,8 @@
+1. Empty function: -247 ns
+2. drand48: -95 ns
+3. getppid: 334 ns
+4. fork(): 449561 ns
+5. waitpid() function only: 460553 ns
+6. fork() + waitpid(): 421041 ns
+7. system("/bin/true"): 9640227 ns
+8. Creating and removing directory: 18065524 ns
