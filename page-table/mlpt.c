@@ -40,6 +40,7 @@ void print_binary_value(char *label, int *value, int limit) {
 }
 
 size_t translate(size_t val) {
+    int size = 64;
 
     size_t address_of_data_for_page_3_as_integer = (size_t) &data_for_page_3[0];
     size_t physical_page_number_of_data_for_page_3 = address_of_data_for_page_3_as_integer >> 12;

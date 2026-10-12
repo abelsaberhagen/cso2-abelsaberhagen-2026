@@ -13,7 +13,7 @@ extern size_t ptbr;
  * Return a value consisting of all 1 bits
  * if this virtual address does not have a physical address.
  */
-size_t translate(size_t va, int size);
+size_t translate(size_t va);
 
 /**
  * Allocates and maps the virtual page which starts at virtual address `start_va`
