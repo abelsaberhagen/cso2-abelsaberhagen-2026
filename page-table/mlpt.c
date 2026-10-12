@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include "config.h"
 
-alignas(4096);
-static size_t page_of_data[512];
+alignas(4096) static size_t page_of_data[512];
 
-alignas(4096);
-static char data_for_page_3[4096];
+alignas(4096) static char data_for_page_3[4096];
 size_t ptbr = 0;
 
 static void set_testing_ptbr(void) {
