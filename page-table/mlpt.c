@@ -42,7 +42,7 @@ size_t translate(size_t va) {
     
    
 
-    size_t offset_bits = va << ((sizeof(va) * 8) - POBITS);
+    size_t offset_bits = va & ((1UL << POBITS) - 1);
     size_t vpn = va >> POBITS;
 
     int vpn_size;
@@ -63,6 +63,10 @@ size_t translate(size_t va) {
         new_pt_ptr = (size_t *) new_pte_index;
     }
     size_t pte = *new_pt_ptr;
+    if (pte == 0) {
+        return -1;
+    }
+
     size_t ppn = pte >> POBITS;
     size_t ppa = (ppn << POBITS) + offset_bits;
     
@@ -81,7 +85,7 @@ size_t translate(size_t va) {
 int allocate_page(size_t start_va) { 
 
     size_t page_size = 1UL << POBITS;
-    int num_pt_entries = pow(2, POBITS)/page_size;
+    int num_pt_entries = page_size/sizeof(size_t);
     size_t vpn = start_va >> POBITS;
     int vpn_size;
     if (sizeof(vpn) % LEVELS == 0) {
