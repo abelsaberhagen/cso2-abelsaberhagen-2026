@@ -1,7 +1,7 @@
 CC = gcc -std=c2x 
 CFLAGS = -Wall
 
-%.o: %.c config.h libmlpt.a
+%.o: %.c config.h
 	$(CC) $(CFLAGS) -c $<
 
 libmlpt.a: mlpt.o mlpt.h
