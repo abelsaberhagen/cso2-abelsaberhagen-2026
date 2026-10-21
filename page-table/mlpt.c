@@ -34,51 +34,54 @@ void print_binary_value(char *label, int *value, int limit) {
 
 size_t translate(size_t va) {
 
-    size_t valid_bit = va & 0b1;
-    size_t return_val;
-    if (valid_bit == 0) {
-        return_val = -1;
-    } 
-    else {
-
-        size_t offset_bits = va << ((sizeof(va) * 8) - POBITS);
-        size_t vpn = va >> POBITS;
-
-        int vpn_size;
-        if (sizeof(vpn) % LEVELS == 0) {
-            vpn_size = sizeof(vpn)/LEVELS;
-        }
-        else {
-            return -1;
-        }
-        size_t* pt_ptr = (size_t*) ptbr;
-        size_t new_vpn = vpn >> (sizeof(vpn) - vpn_size);
-        size_t* new_pte_index = pt_ptr + new_vpn;
-        size_t* new_pt_ptr = (size_t*) new_pte_index;
-        size_t current_vpn;
-        for (int i = 1; i < LEVELS; ++i) {
-            current_vpn = (vpn << (vpn_size * i)) >> (LEVELS - vpn_size * i);
-            new_pte_index = new_pte_index + current_vpn;
-            new_pt_ptr = (size_t *) new_pte_index;
-        }
-        size_t pte = *new_pt_ptr;
-        size_t ppn = pte >> POBITS;
-        size_t ppa = (ppn << POBITS) + offset_bits;
-        
-        printf("offset: %lx\n", offset_bits);
-        printf("ppn: %lx\n", vpn);
-        printf("ppa: %lx\n", ppa);
-
-
-        return_val = ppa;
+    if (ptbr == 0) {
+        return -1;
     }
+
+    size_t return_val;
+    
+   
+
+    size_t offset_bits = va << ((sizeof(va) * 8) - POBITS);
+    size_t vpn = va >> POBITS;
+
+    int vpn_size;
+    if (sizeof(vpn) % LEVELS == 0) {
+        vpn_size = POBITS - 3;
+    }
+    else {
+        return -1;
+    }
+    size_t* pt_ptr = (size_t*) ptbr;
+    size_t new_vpn = vpn >> (sizeof(vpn) - vpn_size);
+    size_t* new_pte_index = pt_ptr + new_vpn;
+    size_t* new_pt_ptr = (size_t*) new_pte_index;
+    size_t current_vpn;
+    for (int i = 1; i < LEVELS; ++i) {
+        current_vpn = (vpn << (vpn_size * i)) >> (LEVELS - vpn_size * i);
+        new_pte_index = new_pte_index + current_vpn;
+        new_pt_ptr = (size_t *) new_pte_index;
+    }
+    size_t pte = *new_pt_ptr;
+    size_t ppn = pte >> POBITS;
+    size_t ppa = (ppn << POBITS) + offset_bits;
+    
+    printf("offset: %lx\n", offset_bits);
+    printf("ppn: %lx\n", vpn);
+    printf("ppa: %lx\n", ppa);
+
+
+    return_val = ppa;
+
     
 
     return return_val;
 }
 
 int allocate_page(size_t start_va) { 
-    int num_pt_entries = pow(2, POBITS)/8;
+
+    size_t page_size = 1UL << POBITS;
+    int num_pt_entries = pow(2, POBITS)/page_size;
     size_t vpn = start_va >> POBITS;
     int vpn_size;
     if (sizeof(vpn) % LEVELS == 0) {
@@ -92,7 +95,7 @@ int allocate_page(size_t start_va) {
     if (pt_ptr == 0) {
         void *temp_ptr = NULL;
 
-        int err = posix_memalign(&temp_ptr, sizeof(void*), 8);
+        int err = posix_memalign(&temp_ptr, sizeof(void*), num_pt_entries);
         
         if (err != 0) {
             return 0; 
@@ -110,7 +113,7 @@ int allocate_page(size_t start_va) {
 
             void *temp_ptr = NULL;
 
-            int err = posix_memalign(&temp_ptr, sizeof(void*), 8);
+            int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
                 
             if (err != 0) {
                 return 0; 
@@ -125,7 +128,7 @@ int allocate_page(size_t start_va) {
                 //posix_memalign(*new_pte, 8);
                 void *temp_ptr = NULL;
 
-                int err = posix_memalign(&temp_ptr, sizeof(void*), 8);
+                int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
                 
                 if (err != 0) {
                     return 0; 
