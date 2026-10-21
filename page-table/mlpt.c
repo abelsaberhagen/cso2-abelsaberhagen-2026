@@ -58,7 +58,11 @@ size_t translate(size_t va) {
     size_t* new_pt_ptr = (size_t*) new_pte_index;
     size_t current_vpn;
     for (int i = 1; i < LEVELS; ++i) {
-        current_vpn = (vpn << (vpn_size * i)) >> (LEVELS - vpn_size * i);
+        if (LEVELS == 1) {
+            current_vpn = vpn;
+        } else {
+            current_vpn = (vpn << (vpn_size * i)) >> (LEVELS - vpn_size * i);
+        }
         new_pte_index = new_pte_index + current_vpn;
         new_pt_ptr = (size_t *) new_pte_index;
     }
@@ -108,7 +112,7 @@ int allocate_page(size_t start_va) {
         ptbr = (size_t) temp_ptr;
         pt_ptr = (size_t*) ptbr;
     }
-    if (start_va > num_pt_entries) {
+    if (vpn >= num_pt_entries) {
         return 0;
     }
     else {

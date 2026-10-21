@@ -10,8 +10,8 @@
 
 int main(int argv, char *argc[]) {
 
-    int success = allocate_page(0x1000);
-    size_t translated = translate(0x1);
+    allocate_page(0x1000);
+    translate(0x1);
 
 
     return 0;
