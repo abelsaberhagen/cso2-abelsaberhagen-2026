@@ -10,6 +10,7 @@
 
 int main(int argv, char *argc[]) {
 
+
     size_t translated = translate(0x3045);
 
     printf("%lx\n", translated);

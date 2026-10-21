@@ -3,17 +3,8 @@
 #include <stddef.h>
 #include <stdalign.h>
 #include <stddef.h>
+#include <math.h> 
 #include "config.h"
-
-alignas(4096) static size_t page_of_data[512];
-
-alignas(4096) static char data_for_page_3[4096];
-size_t ptbr = 0;
-
-static void set_testing_ptbr(void) {
-    ptbr = (size_t) page_of_data[3];
-}
-
 
 
 int* to_binary(int num, int size) {
@@ -39,50 +30,40 @@ void print_binary_value(char *label, int *value, int limit) {
     printf("\n");
 }
 
-size_t translate(size_t val) {
-    int size = 64;
+size_t translate(size_t va) {
 
-    size_t address_of_data_for_page_3_as_integer = (size_t) &data_for_page_3[0];
-    size_t physical_page_number_of_data_for_page_3 = address_of_data_for_page_3_as_integer >> 12;
-    // instead of >> 12, we could have written:
-        // address_of_data_for_page_3_as_integer / 4096
-    size_t page_table_entry_for_page_3 = (
-        // physical page number in upper (64-POBITS) bits
-        (physical_page_number_of_data_for_page_3 << 12)
-    |
-        // valid bit in least significant bit, set to 1
-        1
-    );
-
-    page_of_data[3] = page_table_entry_for_page_3;
-    set_testing_ptbr();
-
-    int *val_ptr = to_binary(val, size);
-
-    size_t valid_bit = val & 0b1;
+    size_t valid_bit = va & 0b1;
     size_t return_val;
     if (valid_bit == 0) {
-        return_val = 0xFFFFFFFFFFFFFFFF;
+        return_val = -1;
     } 
     else {
-        size_t offset_bit = val & 0xFFF;
-        size_t vpn = val >> POBITS;
+
+        size_t offset_bits = va << (sizeof(va) - POBITS);
+        size_t vpn = va >> POBITS;
         size_t pte_index = vpn;
-        printf("hello");
-        size_t pte = page_of_data[pte_index];
-        printf("hello");
+
+        int vpn_size;
+        if (sizeof(vpn) % LEVELS == 0) {
+            vpn_size = sizeof(vpn)/LEVELS;
+        }
+        else {
+            return -1;
+        }
+        size_t* pt_ptr = (size_t*) ptbr;
+        size_t new_vpn = vpn >> (sizeof(vpn) - vpn_size);
+        size_t new_pte_index = pt_ptr + vpn;
+        size_t* new_pt_ptr = (size_t*) new_pte_index;
+        for (int i = 1; i < LEVELS; ++i) {
+            current_vpn = (vpn << (vpn_size * i)) >> (LEVELS - vpn_size * i);
+            new_pte_index = new_pte_index + current_vpn;
+            new_pt_ptr = (size_t *) new_pte_index;
+        }
+        pte = *new_pt_ptr;
         size_t ppn = pte >> POBITS;
-        size_t ppa = (ppn << POBITS) + offset_bit;
-    
-
+        size_t ppa = (ppn << POBITS) + offset_bits;
         
-        int *offset_ptr = to_binary(offset_bit, POBITS);
-        int *ppa_ptr = to_binary(ppa, size);
-        
-        //print_binary_value("offset: ", offset_ptr, size);
-        //print_binary_value("ppn: ", ppn_ptr, size);
-
-        printf("offset: %lx\n", offset_bit);
+        printf("offset: %lx\n", offset_bits);
         printf("ppn: %lx\n", vpn);
         printf("ppa: %lx\n", ppa);
 
@@ -93,11 +74,48 @@ size_t translate(size_t val) {
         return_val = ppa;
     }
     
-    //print_binary_value("val: ", val_ptr, size);
-    printf("val: %lx\n", val);
 
     
     free(val_ptr);
     return return_val;
+}
+
+int allocate_page(size_t start_va) { 
+    int num_pt_entries = pow(2, POBITS)/8
+    size_t vpn = va >> POBITS;
+    int vpn_size;
+    if (sizeof(vpn) % LEVELS == 0) {
+        vpn_size = sizeof(vpn)/LEVELS;
+    }
+    else {
+        return 0;
+    }
+    
+    size_t* pt_ptr = (size_t*) ptbr;
+    if (pt_ptr == 0) {
+        void *result;
+        int error_code = posix_memalign(&result, pt_ptr, num_pt_entries);
+    }
+    if (pt_ptr + start_va > num_pt_entries) {
+        return 0;
+    }
+    else {
+        if (start_va % (1 << POBITS) == 0) { 
+            void *result;
+            current_vpn = vpn >> sizeof(vpn) - vpn_size;
+            int error_code = posix_memalign(&result, pt_ptr[vpn], 8);
+            size_t* new_pte = *pt_ptr
+            for (int i = 1; i < LEVELS; ++i) {
+                current_vpn = (vpn << (vpn_size * i)) >> (LEVELS - vpn_size * i);
+                new_pte += current_vpn;
+                int error_code = posix_memalign(&result, *new_pte, 8);
+            }
+            return 1;
+        } 
+        else {
+            return 0;
+        }
+    }
+    
 }
 
