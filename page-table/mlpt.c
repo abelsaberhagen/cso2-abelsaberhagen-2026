@@ -35,7 +35,7 @@ void print_binary_value(char *label, int *value, int limit) {
 size_t translate(size_t va) {
 
     if (ptbr == 0) {
-        return -1;
+        return (size_t)-1;
     }   
    
 
@@ -45,23 +45,23 @@ size_t translate(size_t va) {
     int vpn_size = POBITS - 3;
     
     size_t* pt_ptr = (size_t*) ptbr;
-    size_t current_vpn = vpn >> (sizeof(vpn) - vpn_size);
-    size_t* new_pte_index = pt_ptr + current_vpn;
+    size_t index = vpn >> (sizeof(vpn) - vpn_size);
+    size_t* new_pte_index = pt_ptr + index;
     *pt_ptr = *new_pte_index;
 
     for (int level = 1; level <= LEVELS; ++level) {
         if (level == 1) {
-            current_vpn = vpn;
+            index = vpn;
         } else {
-            current_vpn = (vpn << (vpn_size * (level - 1))) >> (LEVELS - vpn_size * (level - 1));
+            index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
         }
 
-        new_pte_index = pt_ptr + current_vpn;
+        new_pte_index = pt_ptr + index;
         *pt_ptr = *new_pte_index;
     }
     size_t pte = *pt_ptr;
     if (pte == 0) {
-        return -1;
+        return (size_t)-1;
     }
     
 
