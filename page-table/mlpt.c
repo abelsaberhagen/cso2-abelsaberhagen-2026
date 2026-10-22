@@ -44,8 +44,8 @@ size_t translate(size_t va) {
 
     int vpn_size = POBITS - 3;
     
-    size_t* pt_ptr = &ptbr;
-    size_t index = vpn >> (sizeof(vpn) - vpn_size);
+    size_t* pt_ptr = (size_t*) ptbr;
+    size_t index = (vpn >> ((LEVELS - 1) * vpn_size)) & ((1UL << vpn_size) - 1);
     size_t* new_pte_index = pt_ptr + index;
     *pt_ptr = *new_pte_index;
 
