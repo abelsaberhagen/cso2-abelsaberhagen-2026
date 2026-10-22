@@ -63,16 +63,6 @@ size_t translate(size_t va) {
         current_address = ppn << POBITS;
     
     }
-    
-    
-
-
-    // size_t ppn = pte >> POBITS;
-    // size_t ppa = (ppn << POBITS) + offset_bits;
-    
-    // printf("offset: %lx\n", offset_bits);
-    // printf("ppn: %lx\n", vpn);
-    // printf("ppa: %lx\n", ppa);
 
     return current_address + offset_bits;
 }
