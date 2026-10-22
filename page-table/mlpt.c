@@ -102,7 +102,7 @@ int allocate_page(size_t start_va) {
         return 0;
     }
     else {
-        if (start_va % (1 << POBITS) == 0) { 
+        if (start_va % page_size == 0) { 
             size_t current_vpn = vpn >> (sizeof(vpn) - vpn_size);
 
             void *temp_ptr = NULL;
