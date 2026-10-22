@@ -60,6 +60,10 @@ size_t translate(size_t va) {
         *pt_ptr = *new_pte_index;
     }
     size_t pte = *pt_ptr;
+    if (pte == 0) {
+        return -1;
+    }
+    
 
 
     size_t ppn = pte >> POBITS;
