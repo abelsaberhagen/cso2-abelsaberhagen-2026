@@ -44,7 +44,7 @@ size_t translate(size_t va) {
 
     int vpn_size = POBITS - 3;
     
-    size_t* pt_ptr = (size_t*) ptbr;
+    size_t pt_ptr = ptbr;
     size_t index = (vpn >> ((LEVELS - 1) * vpn_size)) & ((1UL << vpn_size) - 1);
     size_t* new_pte_index = pt_ptr + index;
     *pt_ptr = *new_pte_index;
@@ -56,24 +56,28 @@ size_t translate(size_t va) {
             index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
         }
 
-        new_pte_index = pt_ptr + index;
-        *pt_ptr = *new_pte_index;
+        new_pte_index = (size_t*) pt_ptr + index;
+        pte = *new_pte_index;
+        
+        if (pte == 0) {
+            return (size_t)-1;
+        }
+        size_t ppn = pte >> POBITS;
+        size_t ppa = ppn << POBITS;
+    
     }
-    size_t pte = *pt_ptr;
-    if (pte == 0) {
-        return (size_t)-1;
-    }
+    
     
 
 
-    size_t ppn = pte >> POBITS;
-    size_t ppa = (ppn << POBITS) + offset_bits;
+    // size_t ppn = pte >> POBITS;
+    // size_t ppa = (ppn << POBITS) + offset_bits;
     
-    printf("offset: %lx\n", offset_bits);
-    printf("ppn: %lx\n", vpn);
-    printf("ppa: %lx\n", ppa);
+    // printf("offset: %lx\n", offset_bits);
+    // printf("ppn: %lx\n", vpn);
+    // printf("ppa: %lx\n", ppa);
 
-    return ppa;
+    return current_address + offset_bits;
 }
 
 int allocate_page(size_t start_va) { 
