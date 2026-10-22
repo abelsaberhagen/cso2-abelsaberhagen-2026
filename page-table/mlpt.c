@@ -44,10 +44,10 @@ size_t translate(size_t va) {
 
     int vpn_size = POBITS - 3;
     
-    size_t pt_ptr = ptbr;
+    size_t current_address = ptbr;
     size_t index = (vpn >> ((LEVELS - 1) * vpn_size)) & ((1UL << vpn_size) - 1);
-    size_t* new_pte_index = pt_ptr + index;
-    *pt_ptr = *new_pte_index;
+    size_t* new_pte_index = (size_t*) current_address + index;
+
 
     for (int level = 1; level <= LEVELS; ++level) {
         if (level == 1) {
@@ -56,14 +56,14 @@ size_t translate(size_t va) {
             index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
         }
 
-        new_pte_index = (size_t*) pt_ptr + index;
-        pte = *new_pte_index;
+        *new_pte_index = current_address + index;
+        size_t pte = *new_pte_index;
         
         if (pte == 0) {
             return (size_t)-1;
         }
         size_t ppn = pte >> POBITS;
-        size_t ppa = ppn << POBITS;
+        current_address = ppn << POBITS;
     
     }
     
