@@ -36,40 +36,31 @@ size_t translate(size_t va) {
 
     if (ptbr == 0) {
         return -1;
-    }
-
-    size_t return_val;
-    
+    }   
    
 
     size_t offset_bits = va & ((1UL << POBITS) - 1);
     size_t vpn = va >> POBITS;
 
-    int vpn_size;
-    if (sizeof(vpn) % LEVELS == 0) {
-        vpn_size = POBITS - 3;
-    }
-    else {
-        return -1;
-    }
+    int vpn_size = POBITS - 3;
+    
     size_t* pt_ptr = (size_t*) ptbr;
-    size_t new_vpn = vpn >> (sizeof(vpn) - vpn_size);
-    size_t* new_pte_index = pt_ptr + new_vpn;
-    size_t* new_pt_ptr = (size_t*) new_pte_index;
-    size_t current_vpn;
-    for (int i = 1; i < LEVELS; ++i) {
-        if (LEVELS == 1) {
+    size_t current_vpn = vpn >> (sizeof(vpn) - vpn_size);
+    size_t* new_pte_index = pt_ptr + current_vpn;
+    *pt_ptr = *new_pte_index;
+
+    for (int level = 1; level <= LEVELS; ++level) {
+        if (level == 1) {
             current_vpn = vpn;
         } else {
-            current_vpn = (vpn << (vpn_size * i)) >> (LEVELS - vpn_size * i);
+            current_vpn = (vpn << (vpn_size * (level - 1))) >> (LEVELS - vpn_size * (level - 1));
         }
-        new_pte_index = new_pte_index + current_vpn;
-        new_pt_ptr = (size_t *) new_pte_index;
+
+        new_pte_index = pt_ptr + current_vpn;
+        *pt_ptr = *new_pte_index;
     }
-    size_t pte = *new_pt_ptr;
-    if (pte == 0) {
-        return -1;
-    }
+    size_t pte = *pt_ptr;
+
 
     size_t ppn = pte >> POBITS;
     size_t ppa = (ppn << POBITS) + offset_bits;
@@ -78,12 +69,7 @@ size_t translate(size_t va) {
     printf("ppn: %lx\n", vpn);
     printf("ppa: %lx\n", ppa);
 
-
-    return_val = ppa;
-
-    
-
-    return return_val;
+    return ppa;
 }
 
 int allocate_page(size_t start_va) { 
@@ -100,7 +86,7 @@ int allocate_page(size_t start_va) {
     }
     
     size_t* pt_ptr = (size_t*) ptbr;
-    if (pt_ptr == 0) {
+    if (ptbr == 0) {
         void *temp_ptr = NULL;
 
         int err = posix_memalign(&temp_ptr, sizeof(void*), num_pt_entries);
@@ -130,8 +116,8 @@ int allocate_page(size_t start_va) {
             pt_ptr[vpn] = (size_t) temp_ptr;
 
             size_t* new_pte = (size_t*) pt_ptr;
-            for (int i = 1; i < LEVELS; ++i) {
-                current_vpn = (vpn << (vpn_size * i)) >> ((LEVELS * 8) - vpn_size * i);
+            for (int level = 1; level < LEVELS; ++level) {
+                current_vpn = (vpn << (vpn_size * level)) >> ((LEVELS * 8) - vpn_size * level);
                 new_pte += current_vpn;
                 //posix_memalign(*new_pte, 8);
                 void *temp_ptr = NULL;

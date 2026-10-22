@@ -1,6 +1,8 @@
 CC = gcc -std=c2x 
 CFLAGS = -Wall
 
+.PHONY: all clean
+
 %.o: %.c config.h
 	$(CC) $(CFLAGS) -c $<
 
