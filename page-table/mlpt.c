@@ -5,6 +5,7 @@
 #include <stdalign.h>
 #include <stddef.h>
 #include <math.h> 
+#include <string.h>
 #include "config.h"
 
 size_t ptbr = 0;
@@ -71,16 +72,11 @@ int allocate_page(size_t start_va) {
 
     size_t page_size = 1UL << POBITS;
     int num_pt_entries = page_size/sizeof(size_t);
+
     size_t vpn = start_va >> POBITS;
-    int vpn_size;
-    if (sizeof(vpn) % LEVELS == 0) {
-        vpn_size = sizeof(vpn)/LEVELS;
-    }
-    else {
-        return 0;
-    }
     
-    size_t* pt_ptr = (size_t*) ptbr;
+    int vpn_size = POBITS - 3;
+    size_t current_address;
     if (ptbr == 0) {
         void *temp_ptr = NULL;
 
@@ -89,41 +85,41 @@ int allocate_page(size_t start_va) {
         if (err != 0) {
             return 0; 
         }
+        memset(temp_ptr, 0, num_pt_entries);
     
         ptbr = (size_t) temp_ptr;
-        pt_ptr = (size_t*) ptbr;
+        current_address = ptbr;
     }
     if (vpn >= num_pt_entries) {
         return 0;
     }
     else {
         if (start_va % page_size == 0) { 
-            size_t current_vpn = vpn >> (sizeof(vpn) - vpn_size);
-
-            void *temp_ptr = NULL;
-
-            int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
-                
-            if (err != 0) {
-                return 0; 
-            }
-                
-            pt_ptr[vpn] = (size_t) temp_ptr;
-
-            size_t* new_pte = (size_t*) pt_ptr;
             for (int level = 1; level < LEVELS; ++level) {
-                current_vpn = (vpn << (vpn_size * level)) >> ((LEVELS * 8) - vpn_size * level);
-                new_pte += current_vpn;
-                //posix_memalign(*new_pte, 8);
-                void *temp_ptr = NULL;
-
-                int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
-                
-                if (err != 0) {
-                    return 0; 
+                size_t index;
+                if (level == 1) {
+                    index = vpn;
                 }
+                else {
+                    index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
+                }
+                size_t *new_pte_index = (size_t *)current_address + index;
+
+                if (new_pte_index == 0) {
+                    void *temp_ptr = NULL;
                 
-                *new_pte = (size_t) temp_ptr;
+                    int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
+                    
+                    if (err != 0) {
+                        return 0; 
+                    }
+                    memset(temp_ptr, 0, page_size);
+                }
+
+                size_t pte = *new_pte_index;
+
+                size_t ppn = pte >> POBITS;
+                current_address = ppn << POBITS;
             }
        
             return 1;
