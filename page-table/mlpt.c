@@ -78,6 +78,8 @@ int allocate_page(size_t start_va) {
     int vpn_size = POBITS - 3;
     size_t current_address;
     if (ptbr == 0) {
+        printf("made page\n");
+
         void *temp_ptr = NULL;
 
         int err = posix_memalign(&temp_ptr, sizeof(void*), num_pt_entries);
@@ -103,8 +105,7 @@ int allocate_page(size_t start_va) {
                 index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
             }
             size_t *new_pte_index = (size_t *)current_address + index;
-
-            if (new_pte_index == 0) {
+            if (*new_pte_index == 0) {
                 void *temp_ptr = NULL;
                 int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
                 
