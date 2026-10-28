@@ -113,6 +113,8 @@ int allocate_page(size_t start_va) {
                     return 0; 
                 }
                 memset(temp_ptr, 0, page_size);
+                
+                *new_pte_index = (size_t)temp_ptr;
             }
 
             size_t pte = *new_pte_index;
