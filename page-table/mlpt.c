@@ -74,7 +74,7 @@ int allocate_page(size_t start_va) {
     int num_pt_entries = page_size/sizeof(size_t);
 
     size_t vpn = start_va >> POBITS;
-    
+
     int vpn_size = POBITS - 3;
     size_t current_address;
     if (ptbr == 0) {
@@ -94,40 +94,35 @@ int allocate_page(size_t start_va) {
         return 0;
     }
     else {
-        if (start_va % page_size == 0) { 
-            for (int level = 1; level < LEVELS; ++level) {
-                size_t index;
-                if (level == 1) {
-                    index = vpn;
-                }
-                else {
-                    index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
-                }
-                size_t *new_pte_index = (size_t *)current_address + index;
-
-                if (new_pte_index == 0) {
-                    void *temp_ptr = NULL;
-                
-                    int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
-                    
-                    if (err != 0) {
-                        return 0; 
-                    }
-                    memset(temp_ptr, 0, page_size);
-                }
-
-                size_t pte = *new_pte_index;
-
-                size_t ppn = pte >> POBITS;
-                current_address = ppn << POBITS;
+        for (int level = 1; level <= LEVELS; ++level) {
+            size_t index;
+            if (level == 1) {
+                index = vpn;
             }
-       
-            return 1;
-        } 
-        else {
-            return 0;
+            else {
+                index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
+            }
+            size_t *new_pte_index = (size_t *)current_address + index;
+
+            if (new_pte_index == 0) {
+                void *temp_ptr = NULL;
+                int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
+                
+                if (err != 0) {
+                    return 0; 
+                }
+                memset(temp_ptr, 0, page_size);
+            }
+
+            size_t pte = *new_pte_index;
+
+            size_t ppn = pte >> POBITS;
+            current_address = ppn << POBITS;
         }
-    }
     
+            return 1;
+    } 
 }
+    
+
 

@@ -10,7 +10,7 @@
 
 int main(int argv, char *argc[]) {
 
-    allocate_page(0x1000);
+    allocate_page(0x0);
     printf("%lx\n", translate(0x1000));
 
 
