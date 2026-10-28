@@ -82,12 +82,12 @@ int allocate_page(size_t start_va) {
 
         void *root_ptr = NULL;
 
-        int err = posix_memalign(&root_ptr, sizeof(void*), num_pt_entries);
+        int err = posix_memalign(&root_ptr, sizeof(void*), page_size);
         
         if (err != 0) {
             return 0; 
         }
-        memset(root_ptr, 0, num_pt_entries);
+        memset(root_ptr, 0, page_size);
     
         ptbr = (size_t) root_ptr;
         current_address = ptbr;
@@ -111,7 +111,7 @@ int allocate_page(size_t start_va) {
                 }
                 memset(temp_ptr, 0, page_size);
                 
-                size_t ppn = (size_t) temp_ptr;
+                size_t ppn = (size_t) temp_ptr >> POBITS;
                 *new_pte_index = (ppn << POBITS) | 1;
             }
 
