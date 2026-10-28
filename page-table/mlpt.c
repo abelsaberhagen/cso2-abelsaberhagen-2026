@@ -80,16 +80,16 @@ int allocate_page(size_t start_va) {
     if (ptbr == 0) {
         printf("made page\n");
 
-        void *temp_ptr = NULL;
+        void *root_ptr = NULL;
 
-        int err = posix_memalign(&temp_ptr, sizeof(void*), num_pt_entries);
+        int err = posix_memalign(&root_ptr, sizeof(void*), num_pt_entries);
         
         if (err != 0) {
             return 0; 
         }
-        memset(temp_ptr, 0, num_pt_entries);
+        memset(root_ptr, 0, num_pt_entries);
     
-        ptbr = (size_t) temp_ptr;
+        ptbr = (size_t) root_ptr;
         current_address = ptbr;
     }
     if (vpn >= num_pt_entries) {
@@ -110,11 +110,14 @@ int allocate_page(size_t start_va) {
                     return 0; 
                 }
                 memset(temp_ptr, 0, page_size);
-
-                *new_pte_index = (size_t)temp_ptr;
+                
+                size_t ppn = (size_t) temp_ptr;
+                *new_pte_index = (ppn << POBITS) | 1;
             }
 
-            current_address = *new_pte_index;
+            size_t pte = *new_pte_index;
+            size_t ppn = pte >> POBITS;         
+            current_address = ppn << POBITS;
 
         }
     
