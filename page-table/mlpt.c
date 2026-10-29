@@ -124,7 +124,7 @@ int allocate_page(size_t start_va) {
 
         }
     
-        return 0;
+        return 1;
     } 
 }
     
