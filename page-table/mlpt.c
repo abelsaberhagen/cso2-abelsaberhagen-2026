@@ -117,6 +117,11 @@ int allocate_page(size_t start_va) {
                 size_t ppn = (size_t) temp_ptr >> POBITS;
                 *new_pte_index = (ppn << POBITS) | 1;
             }
+            else {
+                if (i == LEVELS) {
+                    return 0;
+                }
+            }
 
             size_t pte = *new_pte_index;
             size_t ppn = pte >> POBITS;         
