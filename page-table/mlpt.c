@@ -82,7 +82,7 @@ int allocate_page(size_t start_va) {
 
         void *root_ptr = NULL;
 
-        int err = posix_memalign(&root_ptr, sizeof(void*), page_size);
+        int err = posix_memalign(&root_ptr, page_size, page_size);
         
         if (err != 0) {
             return 0; 
@@ -107,7 +107,7 @@ int allocate_page(size_t start_va) {
             if (*new_pte_index == 0) {
                 printf("made page\n");
                 void *temp_ptr = NULL;
-                int err = posix_memalign(&temp_ptr, sizeof(void*), page_size);
+                int err = posix_memalign(&temp_ptr, page_size, page_size);
                 
                 if (err != 0) {
                     return 0; 
