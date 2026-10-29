@@ -47,12 +47,7 @@ size_t translate(size_t va) {
     size_t current_address = ptbr;
 
     for (int level = 1; level <= LEVELS; ++level) {
-        size_t index;
-        if (level == 1) {
-            index = vpn;
-        } else {
-            index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
-        }
+        size_t index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
 
         size_t *new_pte_index = (size_t *)current_address + index;
         size_t pte = *new_pte_index;
@@ -105,8 +100,7 @@ int allocate_page(size_t start_va) {
     }
     else {
         for (int level = 1; level <= LEVELS; ++level) {
-            size_t index;
-            index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
+            size_t index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
 
             size_t *new_pte_index = (size_t *)current_address + index;
 
