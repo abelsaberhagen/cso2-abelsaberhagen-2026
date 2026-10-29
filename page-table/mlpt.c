@@ -124,7 +124,7 @@ int allocate_page(size_t start_va) {
                 *new_pte_index = (ppn << POBITS) | 1;
             }
             else {
-                if (i == LEVELS) {
+                if (level == LEVELS) {
                     return 0;
                 }
             }
