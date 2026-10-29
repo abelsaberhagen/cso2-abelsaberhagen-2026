@@ -99,7 +99,7 @@ int allocate_page(size_t start_va) {
         return 0;
     }
     else {
-        for (int level = 2; level <= LEVELS; ++level) {
+        for (int level = 1; level <= LEVELS; ++level) {
             size_t index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
 
             size_t *new_pte_index = (size_t *)current_address + index;
