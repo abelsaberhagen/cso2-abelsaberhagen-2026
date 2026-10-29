@@ -70,6 +70,10 @@ size_t translate(size_t va) {
 
 int allocate_page(size_t start_va) { 
 
+    if ((startva & 0x111) != 0x000) {
+        return -1;
+    }
+    
     size_t page_size = 1UL << POBITS;
     int num_pt_entries = page_size/sizeof(size_t);
 
