@@ -95,7 +95,7 @@ int allocate_page(size_t start_va) {
 
     current_address = ptbr;
 
-    if (vpn >= (1UL << vpn_size)) {
+    if (vpn >= (1UL << (LEVELS * vpn_size))) {
         return 0;
     }
     else {
