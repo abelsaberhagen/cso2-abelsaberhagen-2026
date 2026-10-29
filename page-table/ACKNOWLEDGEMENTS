@@ -1,0 +1,10 @@
+For research on licenses I used these sites for the AGPL, MIT, and Boost licenses:
+
+https://www.gnu.org/licenses/agpl-3.0.en.html
+https://opensource.org/license/mit
+https://www.boost.org/doc/user-guide/bsl.html
+
+Thanks to many of my classmates and TAs for helping me explain page table concepts as well as debugging my code during code review.
+
+Used this site to gain a better understanding of page tables:
+https://www.geeksforgeeks.org/operating-systems/multilevel-paging-in-operating-system/

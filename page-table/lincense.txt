@@ -1,0 +1,9 @@
+The three licenses I reviewed were the APGL license, the MIT License.
+
+The APGL license more or less seemes to say that any software with the license is open-source and is free to be used by anyone. In addition, any further edits and improvements made by outside developers are also free to be used or shared by anyone.
+
+The MIT license says that the copyright notice must be included in any use of the software but the software is free to be used or sold in any way.
+
+The Boost license is the same as the MIT license except that in addition to showing the copyright statement in any other software, it must be shown in compiled machine code for the software as well. 
+
+I chose the MIT License because it is very simple and to the point. It allows any users to do anything with the code as long as it contains the copyright statement.
