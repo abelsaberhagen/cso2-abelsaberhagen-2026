@@ -5,7 +5,6 @@
 #include <math.h> 
 #include <string.h>
 #include <stdbool.h>
-#include "tlb.h"
 #include "config.h"
 #include "mlpt.h"
 
@@ -25,22 +24,21 @@ typedef struct {
 } Set;
 
 Set *tlb_ptr = NULL;
-size_t ptbr = 0;
 
-int allocate_page_table() {
-    size_t page_size = 1UL << POBITS;
-    void *root_ptr = NULL;
+// int allocate_page_table() {
+//     size_t page_size = 1UL << POBITS;
+//     void *root_ptr = NULL;
 
-    int err = posix_memalign(&root_ptr, page_size, page_size);
+//     int err = posix_memalign(&root_ptr, page_size, page_size);
         
-    if (err != 0) {
-        return 0; 
-    }
-    memset(root_ptr, 0, page_size);
+//     if (err != 0) {
+//         return 0; 
+//     }
+//     memset(root_ptr, 0, page_size);
 
-    ptbr = (size_t) root_ptr;
-    return 1;
-}
+//     ptbr = (size_t) root_ptr;
+//     return 1;
+// }
 
 void increase_lru(int index) {
     for (int i = 0; i < NUM_SETS; i++) {
@@ -92,9 +90,9 @@ int tlb_peek(size_t va) {
 
 size_t tlb_translate(size_t va) {
 
-    if (ptbr == 0) {
-        allocate_page_table();
-    }
+    // if (ptbr == 0) {
+    //     allocate_page_table();
+    // }
     
     size_t offset_bits = va & ((1UL << POBITS) - 1);
     size_t vpn = va >> POBITS;
@@ -152,29 +150,3 @@ size_t tlb_translate(size_t va) {
 
 }
 
-size_t translate(size_t va) {
-
-    size_t offset_bits = va & ((1UL << POBITS) - 1);
-    size_t vpn = va >> POBITS;
-
-    int vpn_size = POBITS - 3;
-    size_t current_address = (size_t) ptbr;
-
-    for (int level = 1; level <= LEVELS; ++level) {
-        // Grabs the desired VPN given the VA containing a VPN for each level 
-        size_t index = (vpn >> ((LEVELS - level) * vpn_size)) & ((1UL << vpn_size) - 1);
-
-        size_t *new_pte_index = (size_t *)current_address + index;
-        size_t pte = *new_pte_index;
-        
-        // If PTE == 0, PTE has not been allocated, meaning there is no PA.
-        if (pte == 0) {
-            return (size_t)-1;
-        }
-        size_t ppn = pte >> POBITS;
-        current_address = ppn << POBITS;
-    
-    }
-
-    return current_address + offset_bits;
-}
