@@ -12,6 +12,7 @@
 #define NUM_SETS 16
 #define NUM_WAYS 4
 
+
 typedef struct {
     size_t tag;
     size_t address;
@@ -34,6 +35,11 @@ void tlb_clear() {
 }
 
 int tlb_peek(size_t va) {
+
+    if (tlb_ptr == NULL) {
+        return 0;
+    }
+
     size_t vpn = va >> POBITS;
     size_t set_index = vpn % NUM_SETS;
 
@@ -41,7 +47,7 @@ int tlb_peek(size_t va) {
         return 0;
     }
     else {
-        return tlb_ptr[set_index].lru_value;
+        return (int)tlb_ptr[set_index].lru_value;
     }
 }
 
@@ -53,12 +59,12 @@ size_t tlb_translate(size_t va) {
 
     if (tlb_ptr == NULL) {
         void *temp_ptr = NULL;
-        int err = posix_memalign(&temp_ptr, NUM_SETS, NUM_SETS);
+        int err = posix_memalign(&temp_ptr, sizeof(void *), NUM_SETS * sizeof(Set));
         
         if (err != 0) {
             return 0; 
         }
-        memset(temp_ptr, 0, NUM_SETS);
+        memset(temp_ptr, 0, NUM_SETS * sizeof(Set));
 
         tlb_ptr = (Set *) temp_ptr;
     }
@@ -66,20 +72,28 @@ size_t tlb_translate(size_t va) {
     if (tlb_ptr[set_index].valid_bit == 0) {
         return (size_t)-1;
     }
+
     bool in_tlb = false;
-    for (int index = 0; index < NUM_SETS; index++) {
-        for (int way = 0; way < NUM_WAYS; way++) {
-            if (tlb_ptr[index].ways[way].address == va) {
-                in_tlb = true;
-            }
+    size_t translated_address = 0;
+    for (int way = 0; way < NUM_WAYS; way++) {
+        if (tlb_ptr[set_index].valid_bit && tlb_ptr[set_index].ways[way].tag == vpn) {
+            in_tlb = true;
+            translated_address = tlb_ptr[set_index].ways[way].address + offset_bits;
+            break;
         }
     }
 
-    size_t translated_address = translate(va);
     if (!in_tlb) {
+        translated_address = translate(va);
+        if (translated_address == (size_t)-1) {
+            return (size_t)-1;
+        }
+
+        size_t way_to_use = tlb_ptr[set_index].lru_value % NUM_WAYS;
+        tlb_ptr[set_index].valid_bit = 1;
+        tlb_ptr[set_index].ways[way_to_use].tag = vpn;
+        tlb_ptr[set_index].ways[way_to_use].address = translated_address - offset_bits;
         tlb_ptr[set_index].lru_value++;
-        tlb_ptr[set_index].ways[offset_bits].address = vpn;
-        tlb_ptr[set_index].ways[offset_bits].address = translated_address;
     }
     return translated_address;
 
@@ -88,7 +102,7 @@ size_t tlb_translate(size_t va) {
 size_t translate(size_t va) {
 
     // If ptbr has not been allocated
-    if (tlb_ptr == 0) {
+    if (ptbr == 0) {
         return (size_t)-1;
     }   
    
