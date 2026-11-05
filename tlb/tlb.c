@@ -16,16 +16,42 @@
 typedef struct {
     size_t tag;
     size_t address;
-} Way;
+    size_t valid_bit;
+} Block;
 
 typedef struct {
-    size_t valid_bit;
-    Way ways[NUM_WAYS];
+    Block blocks[NUM_WAYS];
     size_t lru_value;
 } Set;
 
 Set *tlb_ptr = NULL;
+size_t ptbr = 0;
 
+int allocate_page_table() {
+    size_t page_size = 1UL << POBITS;
+    void *root_ptr = NULL;
+
+    int err = posix_memalign(&root_ptr, page_size, page_size);
+        
+    if (err != 0) {
+        return 0; 
+    }
+    memset(root_ptr, 0, page_size);
+
+    ptbr = (size_t) root_ptr;
+    return 1;
+}
+
+void increase_lru(int index) {
+    for (int i = 0; i < NUM_SETS; i++) {
+        if (i != index) {
+            tlb_ptr[i].lru_value++;
+        }
+        else {
+            tlb_ptr[i].lru_value = 0;
+        }
+    }
+}
 
 void tlb_clear() {
     if (tlb_ptr != NULL) {
@@ -40,22 +66,40 @@ int tlb_peek(size_t va) {
         return 0;
     }
 
-    size_t vpn = va >> POBITS;
-    size_t set_index = vpn % NUM_SETS;
 
-    if (tlb_ptr[set_index].valid_bit == 0) {
+    size_t vpn = va >> POBITS;
+    size_t index = vpn & 0xF;
+    size_t tag = vpn >> 4;
+
+    if (tlb_ptr == 0) {
+        return 0;
+    }
+
+    for (int block = 0; block < NUM_WAYS; block++) {
+        if (tlb_ptr[index].blocks[block].tag == tag) {
+            if (tlb_ptr[index].blocks[block].valid_bit == 0) {
+                return 0;
+            }
+        }
+    }
+    if (tlb_ptr == 0) {
         return 0;
     }
     else {
-        return (int)tlb_ptr[set_index].lru_value;
+        return (int)tlb_ptr[index].lru_value;
     }
 }
 
 size_t tlb_translate(size_t va) {
+
+    if (ptbr == 0) {
+        allocate_page_table();
+    }
     
     size_t offset_bits = va & ((1UL << POBITS) - 1);
     size_t vpn = va >> POBITS;
-    size_t set_index = vpn % NUM_SETS;
+    size_t index = vpn & 0xF;
+    size_t tag = vpn >> 4;
 
     if (tlb_ptr == NULL) {
         void *temp_ptr = NULL;
@@ -68,18 +112,19 @@ size_t tlb_translate(size_t va) {
 
         tlb_ptr = (Set *) temp_ptr;
     }
-    
-    if (tlb_ptr[set_index].valid_bit == 0) {
-        return (size_t)-1;
-    }
 
     bool in_tlb = false;
     size_t translated_address = 0;
-    for (int way = 0; way < NUM_WAYS; way++) {
-        if (tlb_ptr[set_index].valid_bit && tlb_ptr[set_index].ways[way].tag == vpn) {
-            in_tlb = true;
-            translated_address = tlb_ptr[set_index].ways[way].address + offset_bits;
-            break;
+    for (int block = 0; block < NUM_WAYS; block++) {
+        if (tlb_ptr[index].blocks[block].valid_bit == 0) {
+            return (size_t)-1;
+        } 
+        else {
+            if (tlb_ptr[index].blocks[block].tag == vpn) {
+                in_tlb = true;
+                translated_address = tlb_ptr[index].blocks[block].address + offset_bits;
+                break;
+            }
         }
     }
 
@@ -89,11 +134,19 @@ size_t tlb_translate(size_t va) {
             return (size_t)-1;
         }
 
-        size_t way_to_use = tlb_ptr[set_index].lru_value % NUM_WAYS;
-        tlb_ptr[set_index].valid_bit = 1;
-        tlb_ptr[set_index].ways[way_to_use].tag = vpn;
-        tlb_ptr[set_index].ways[way_to_use].address = translated_address - offset_bits;
-        tlb_ptr[set_index].lru_value++;
+        for (int i = 0; i < NUM_SETS; i++) {
+            if (tlb_ptr[index].lru_value == 0) {
+                tlb_ptr[index].lru_value++;
+                for (int block = 0; block < NUM_WAYS; block++) {
+                    if (tlb_ptr[index].blocks[block].valid_bit == 0) {
+                        tlb_ptr[index].blocks[block].valid_bit = 1;
+                        tlb_ptr[index].blocks[block].tag = tag;
+                        tlb_ptr[index].blocks[block].address = translated_address - offset_bits;
+                        break;
+                    }
+                }
+            }
+        }
     }
     return translated_address;
 
@@ -101,17 +154,11 @@ size_t tlb_translate(size_t va) {
 
 size_t translate(size_t va) {
 
-    // If ptbr has not been allocated
-    if (ptbr == 0) {
-        return (size_t)-1;
-    }   
-   
-
     size_t offset_bits = va & ((1UL << POBITS) - 1);
     size_t vpn = va >> POBITS;
 
     int vpn_size = POBITS - 3;
-    size_t current_address = (size_t) tlb_ptr;
+    size_t current_address = (size_t) ptbr;
 
     for (int level = 1; level <= LEVELS; ++level) {
         // Grabs the desired VPN given the VA containing a VPN for each level 
