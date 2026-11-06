@@ -89,6 +89,8 @@ size_t tlb_translate(size_t va) {
     size_t vpn = va >> POBITS;
     size_t index = vpn & 0xF;
     size_t tag = vpn >> 4;
+    size_t page_aligned_va = va & ~((1UL << POBITS) - 1);
+
 
     if (tlb_ptr == NULL) {
         void *temp_ptr = NULL;
@@ -109,7 +111,7 @@ size_t tlb_translate(size_t va) {
         }
     }
 
-    size_t translated_address = translate(va);
+    size_t translated_address = translate(page_aligned_va);
     if (translated_address == (size_t)-1) {
         return (size_t)-1;
     }
@@ -142,7 +144,7 @@ size_t tlb_translate(size_t va) {
     increase_lru(index, target_block, true);
         
     
-    return translated_address;
+    return translated_address + offset_bits;
 
 }
 
