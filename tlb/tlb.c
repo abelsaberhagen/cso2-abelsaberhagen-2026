@@ -21,7 +21,6 @@ typedef struct {
 
 typedef struct {
     Block blocks[NUM_WAYS];
-    size_t lru_value;
 } Set;
 
 Set *tlb_ptr = NULL;
@@ -30,10 +29,10 @@ void increase_lru(int index, int target_block) {
     for (int block = 0; block < NUM_WAYS; block++) { 
         if (block != target_block) {
             if (tlb_ptr[index].blocks[block].valid_bit == 1) {
-                tlb_ptr[index].blocks[block].lru_value++;
+                tlb_ptr[index].blocks[block].lru_rank++;
             }
         } else {
-            tlb_ptr[index].blocks[block].lru_value = 0; 
+            tlb_ptr[index].blocks[block].lru_rank = 0; 
         }
     }
 }
@@ -62,7 +61,7 @@ int tlb_peek(size_t va) {
 
     for (int block = 0; block < NUM_WAYS; block++) {
         if (tlb_ptr[index].blocks[block].valid_bit == 1 && tlb_ptr[index].blocks[block].tag == tag) {
-                return (int)tlb_ptr[index].lru_value;
+                return (int)tlb_ptr[index].blocks[block].lru_rank;
         }
     }
     
