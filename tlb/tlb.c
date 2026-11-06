@@ -34,13 +34,13 @@ void increase_lru(int index, int target_block) {
     }
 
     for (int block = 0; block < NUM_WAYS; block++) { 
-        if (tlb_ptr[index].blocks[target_block].valid_bit == 1) {
+        if (tlb_ptr[index].blocks[block].valid_bit == 1) {
             if (block == target_block) {
-                tlb_ptr[index].blocks[block].lru_rank++;
+                tlb_ptr[index].blocks[block].lru_rank = 1; //MRU
             }
             else {
                 if (tlb_ptr[index].blocks[block].lru_rank < old_rank) {
-                    tlb_ptr[index].blocks[block].lru_rank++; 
+                    tlb_ptr[index].blocks[block].lru_rank++;
                 }
             }
         }
@@ -118,7 +118,7 @@ size_t tlb_translate(size_t va) {
     }
 
     if (target_block == -1) {
-        for (int block; block < NUM_WAYS; block++) {
+        for (int block = 0; block < NUM_WAYS; block++) {
             if (tlb_ptr[index].blocks[block].lru_rank == NUM_WAYS) {
                 target_block = block;
                 break;
