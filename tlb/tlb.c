@@ -26,13 +26,23 @@ typedef struct {
 Set *tlb_ptr = NULL;
 
 void increase_lru(int index, int target_block) {
+    int old_rank = tlb_ptr[index].blocks[target_block].lru_rank;
+
+    if (tlb_ptr[index].blocks[target_block].valid_bit == 0) {
+        old_rank = NUM_WAYS + 1;
+        tlb_ptr[index].blocks[target_block].valid_bit = 1;
+    }
+
     for (int block = 0; block < NUM_WAYS; block++) { 
-        if (block != target_block) {
-            if (tlb_ptr[index].blocks[block].valid_bit == 1) {
+        if (tlb_ptr[index].blocks[target_block].valid_bit == 1) {
+            if (block == target_block) {
                 tlb_ptr[index].blocks[block].lru_rank++;
             }
-        } else {
-            tlb_ptr[index].blocks[block].lru_rank = 0; 
+            else {
+                if (tlb_ptr[index].blocks[block].lru_rank < old_rank) {
+                    tlb_ptr[index].blocks[block].lru_rank++; 
+                }
+            }
         }
     }
 }
@@ -87,38 +97,46 @@ size_t tlb_translate(size_t va) {
         tlb_ptr = (Set *) temp_ptr;
     }
 
-    bool in_tlb = false;
-    size_t translated_address = 0;
     for (int block = 0; block < NUM_WAYS; block++) {
         if (tlb_ptr[index].blocks[block].valid_bit == 1 && tlb_ptr[index].blocks[block].tag == tag) {
-            in_tlb = true;
-            translated_address = tlb_ptr[index].blocks[block].address + offset_bits;
             increase_lru(index, block);
+            return tlb_ptr[index].blocks[block].address + offset_bits;
+        }
+    }
+
+    size_t translated_address = translate(va);
+    if (translated_address == (size_t)-1) {
+        return (size_t)-1;
+    }
+
+    int target_block = -1;
+    for (int block = 0; block < NUM_WAYS; block++) {
+        if (tlb_ptr[index].blocks[block].valid_bit == 0) {
+            target_block = block;
             break;
         }
     }
 
-    if (!in_tlb) {
-        translated_address = translate(va);
-        if (translated_address == (size_t)-1) {
-            return (size_t)-1;
-        }
-
-        int target_block = 0;
-        for (int block = 0; block < NUM_WAYS; block++) {
-            if (tlb_ptr[index].blocks[block].valid_bit == 0) {
+    if (target_block == -1) {
+        for (int block; block < NUM_WAYS; block++) {
+            if (tlb_ptr[index].blocks[block].lru_rank == NUM_WAYS) {
                 target_block = block;
                 break;
             }
         }
 
-        tlb_ptr[index].blocks[target_block].valid_bit = 1;
-        tlb_ptr[index].blocks[target_block].tag = tag;
-        tlb_ptr[index].blocks[target_block].address = translated_address - offset_bits;
-        
-        increase_lru(index, target_block);
-        
+        if (target_block == -1) {
+            target_block = 0;
+        }
     }
+        
+    tlb_ptr[index].blocks[target_block].valid_bit = 1;
+    tlb_ptr[index].blocks[target_block].tag = tag;
+    tlb_ptr[index].blocks[target_block].address = translated_address - offset_bits;
+        
+    increase_lru(index, target_block);
+        
+    
     return translated_address;
 
 }
