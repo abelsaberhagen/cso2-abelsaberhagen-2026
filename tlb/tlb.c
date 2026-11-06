@@ -28,7 +28,7 @@ Set *tlb_ptr = NULL;
 void increase_lru(int index, int target_block, bool is_new_block) {
     int old_rank = tlb_ptr[index].blocks[target_block].lru_rank;
 
-    if (is_new_block || old_rank = 0) {
+    if (is_new_block || old_rank == 0) {
         tlb_ptr[index].blocks[target_block].valid_bit = 1;
         for (int block = 0; block < NUM_WAYS; block++) {
             if (block != target_block && tlb_ptr[index].blocks[block].valid_bit == 1) {
