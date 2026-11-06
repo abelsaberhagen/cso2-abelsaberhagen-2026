@@ -29,18 +29,22 @@ void increase_lru(int index, int target_block) {
     int old_rank = tlb_ptr[index].blocks[target_block].lru_rank;
 
     if (tlb_ptr[index].blocks[target_block].valid_bit == 0) {
-        old_rank = NUM_WAYS + 1;
         tlb_ptr[index].blocks[target_block].valid_bit = 1;
-    }
-
-    for (int block = 0; block < NUM_WAYS; block++) { 
-        if (tlb_ptr[index].blocks[block].valid_bit == 1) {
-            if (block == target_block) {
-                tlb_ptr[index].blocks[block].lru_rank = 1; //MRU
-            }
-            else {
-                if (tlb_ptr[index].blocks[block].lru_rank < old_rank) {
+        for (int block = 0; block < NUM_WAYS; block++) {
+            if (block != target_block && tlb_ptr[index].blocks[block].valid_bit == 1) {
+                if (tlb_ptr[index].blocks[block].lru_rank < NUM_WAYS) {
                     tlb_ptr[index].blocks[block].lru_rank++;
+                }
+            }
+        }
+        tlb_ptr[index].blocks[target_block].lru_rank = 1; 
+    } else {
+        for (int block = 0; block < NUM_WAYS; block++) {
+            if (tlb_ptr[index].blocks[block].valid_bit == 1) {
+                if (block == target_block) {
+                    tlb_ptr[index].blocks[block].lru_rank = 1; 
+                } else if (tlb_ptr[index].blocks[block].lru_rank < old_rank) {
+                    tlb_ptr[index].blocks[block].lru_rank++; 
                 }
             }
         }
@@ -132,7 +136,7 @@ size_t tlb_translate(size_t va) {
         
     tlb_ptr[index].blocks[target_block].valid_bit = 1;
     tlb_ptr[index].blocks[target_block].tag = tag;
-    tlb_ptr[index].blocks[target_block].address = translated_address - offset_bits;
+    tlb_ptr[index].blocks[target_block].address = translated_address;
         
     increase_lru(index, target_block);
         
