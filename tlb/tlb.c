@@ -16,6 +16,7 @@ typedef struct {
     size_t tag;
     size_t address;
     size_t valid_bit;
+    int lru_rank;
 } Block;
 
 typedef struct {
@@ -25,13 +26,14 @@ typedef struct {
 
 Set *tlb_ptr = NULL;
 
-void increase_lru(int index) {
-    for (int i = 0; i < NUM_SETS; i++) {
-        if (i != index) {
-            tlb_ptr[i].lru_value++;
-        }
-        else {
-            tlb_ptr[i].lru_value = 0;
+void increase_lru(int index, int target_block) {
+    for (int block = 0; block < NUM_WAYS; block++) { 
+        if (block != target_block) {
+            if (tlb_ptr[index].blocks[block].valid_bit == 1) {
+                tlb_ptr[index].blocks[block].lru_value++;
+            }
+        } else {
+            tlb_ptr[index].blocks[block].lru_value = 0; 
         }
     }
 }
@@ -92,7 +94,7 @@ size_t tlb_translate(size_t va) {
         if (tlb_ptr[index].blocks[block].valid_bit == 1 && tlb_ptr[index].blocks[block].tag == tag) {
             in_tlb = true;
             translated_address = tlb_ptr[index].blocks[block].address + offset_bits;
-            increase_lru(index);
+            increase_lru(index, block);
             break;
         }
     }
@@ -115,7 +117,7 @@ size_t tlb_translate(size_t va) {
         tlb_ptr[index].blocks[target_block].tag = tag;
         tlb_ptr[index].blocks[target_block].address = translated_address - offset_bits;
         
-        increase_lru(index);
+        increase_lru(index, target_block);
         
     }
     return translated_address;
