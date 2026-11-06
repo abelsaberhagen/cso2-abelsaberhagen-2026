@@ -25,21 +25,6 @@ typedef struct {
 
 Set *tlb_ptr = NULL;
 
-// int allocate_page_table() {
-//     size_t page_size = 1UL << POBITS;
-//     void *root_ptr = NULL;
-
-//     int err = posix_memalign(&root_ptr, page_size, page_size);
-        
-//     if (err != 0) {
-//         return 0; 
-//     }
-//     memset(root_ptr, 0, page_size);
-
-//     ptbr = (size_t) root_ptr;
-//     return 1;
-// }
-
 void increase_lru(int index) {
     for (int i = 0; i < NUM_SETS; i++) {
         if (i != index) {
@@ -74,25 +59,15 @@ int tlb_peek(size_t va) {
     }
 
     for (int block = 0; block < NUM_WAYS; block++) {
-        if (tlb_ptr[index].blocks[block].tag == tag) {
-            if (tlb_ptr[index].blocks[block].valid_bit == 0) {
-                return 0;
-            }
+        if (tlb_ptr[index].blocks[block].valid_bit == 1 && tlb_ptr[index].blocks[block].tag == tag) {
+                return (int)tlb_ptr[index].lru_value;
         }
     }
-    if (tlb_ptr == 0) {
-        return 0;
-    }
-    else {
-        return (int)tlb_ptr[index].lru_value;
-    }
+    
+    return 0;
 }
 
 size_t tlb_translate(size_t va) {
-
-    // if (ptbr == 0) {
-    //     allocate_page_table();
-    // }
     
     size_t offset_bits = va & ((1UL << POBITS) - 1);
     size_t vpn = va >> POBITS;
@@ -114,15 +89,11 @@ size_t tlb_translate(size_t va) {
     bool in_tlb = false;
     size_t translated_address = 0;
     for (int block = 0; block < NUM_WAYS; block++) {
-        if (tlb_ptr[index].blocks[block].valid_bit == 0) {
-            return (size_t)-1;
-        } 
-        else {
-            if (tlb_ptr[index].blocks[block].tag == vpn) {
-                in_tlb = true;
-                translated_address = tlb_ptr[index].blocks[block].address + offset_bits;
-                break;
-            }
+        if (tlb_ptr[index].blocks[block].valid_bit == 1 && tlb_ptr[index].blocks[block].tag == tag) {
+            in_tlb = true;
+            translated_address = tlb_ptr[index].blocks[block].address + offset_bits;
+            increase_lru(index);
+            break;
         }
     }
 
@@ -132,19 +103,20 @@ size_t tlb_translate(size_t va) {
             return (size_t)-1;
         }
 
-        for (int i = 0; i < NUM_SETS; i++) {
-            if (tlb_ptr[index].lru_value == 0) {
-                tlb_ptr[index].lru_value++;
-                for (int block = 0; block < NUM_WAYS; block++) {
-                    if (tlb_ptr[index].blocks[block].valid_bit == 0) {
-                        tlb_ptr[index].blocks[block].valid_bit = 1;
-                        tlb_ptr[index].blocks[block].tag = tag;
-                        tlb_ptr[index].blocks[block].address = translated_address - offset_bits;
-                        break;
-                    }
-                }
+        int target_block = 0;
+        for (int block = 0; block < NUM_WAYS; block++) {
+            if (tlb_ptr[index].blocks[block].valid_bit == 0) {
+                target_block = block;
+                break;
             }
         }
+
+        tlb_ptr[index].blocks[target_block].valid_bit = 1;
+        tlb_ptr[index].blocks[target_block].tag = tag;
+        tlb_ptr[index].blocks[target_block].address = translated_address - offset_bits;
+        
+        increase_lru(index);
+        
     }
     return translated_address;
 
