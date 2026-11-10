@@ -9,6 +9,7 @@ typedef struct {
     int end_row;
     int height;
     LifeBoard *state;
+    LifeBoard *next_state;
     int steps;
     pthread_barrier_t *barrier;
 
@@ -21,8 +22,8 @@ void* thread_simulate(void* args) {
     int start_row = thread_properties->start_row;
     int end_row = thread_properties->end_row;
     LifeBoard *state = thread_properties->state;
+    LifeBoard *next_state = thread_properties->next_state;
     int steps = thread_properties->steps;
-    LifeBoard *next_state = LB_new(state->width, state->height); 
     pthread_barrier_t *thread_barrier = thread_properties->barrier;   
     
     for (int step = 0; step < steps; step += 1) {
@@ -87,6 +88,8 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
     pthread_barrier_t call_barrier;
     pthread_barrier_init(&call_barrier, NULL, threads);
 
+    LifeBoard *next_state = LB_new(state->width, state->height); 
+
     for (int t = 0; t < threads; t++) {
         // Makes sure all rows are processed by giving remaining rows to threads when the height of the board is not
         // divisible by the number of threads.
@@ -100,6 +103,7 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         args[t].end_row = current_row + assigned_rows;
         args[t].height = assigned_rows;
         args[t].state = state;
+        args[t].next_state = next_state;
         args[t].steps = steps;
         args[t].barrier = &call_barrier;
 
