@@ -10,7 +10,7 @@ typedef struct {
     int height;
     LifeBoard *state;
     int steps;
-    pthread_barrier_t barrier;
+    pthread_barrier_t *barrier;
 
 } ThreadArgs;
 
@@ -23,9 +23,7 @@ void* thread_simulate(void* args) {
     LifeBoard *state = thread_properties->state;
     int steps = thread_properties->steps;
     LifeBoard *next_state = LB_new(state->width, state->height); 
-    pthread_barrier_t thread_barrier = thread_properties->barrier;   
-     
-    pthread_barrier_init(&thread_barrier, NULL, threads);
+    pthread_barrier_t *thread_barrier = thread_properties->barrier;   
     
     for (int step = 0; step < steps; step += 1) {
 
@@ -53,9 +51,9 @@ void* thread_simulate(void* args) {
         }
         
         /* now that we computed next_state, make it the current state */
-        pthread_barrier_wait(&barrier);
+        pthread_barrier_wait(thread_barrier);
         LB_swap(state, next_state);
-        pthread_barrier_wait(&barrier);
+        pthread_barrier_wait(thread_barrier);
     }
     LB_del(next_state);
     return NULL;
@@ -72,6 +70,9 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
 
     int rows_per_thread = state->height / threads;
 
+    pthread_barrier_t call_barrier;
+    pthread_barrier_init(&call_barrier, NULL, threads);
+
     for (int t = 0; t < threads; t++) {
 
         args[t].thread_id = t;
@@ -80,6 +81,7 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         args[t].height = rows_per_thread;
         args[t].state = state;
         args[t].steps = steps;
+        args[t].barrier = &call_barrier;
 
         pthread_create(&thread_ids[t], NULL, thread_simulate, &args[t]);
 
@@ -89,7 +91,7 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         pthread_join(thread_ids[t], NULL);
     }
 
-    pthread_barrier_destroy(&barrier);
+    pthread_barrier_destroy(&call_barrier);
 
     free(thread_ids);
     free(args);
