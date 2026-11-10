@@ -2,7 +2,6 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-pthread_barrier_t barrier;
 
 typedef struct {
     int thread_id;
@@ -11,6 +10,8 @@ typedef struct {
     int height;
     LifeBoard *state;
     int steps;
+    pthread_barrier_t barrier;
+
 } ThreadArgs;
 
 void* thread_simulate(void* args) {
@@ -21,7 +22,10 @@ void* thread_simulate(void* args) {
     int end_row = thread_properties->end_row;
     LifeBoard *state = thread_properties->state;
     int steps = thread_properties->steps;
-    LifeBoard *next_state = LB_new(state->width, state->height);     
+    LifeBoard *next_state = LB_new(state->width, state->height); 
+    pthread_barrier_t thread_barrier = thread_properties->barrier;   
+     
+    pthread_barrier_init(&thread_barrier, NULL, threads);
     
     for (int step = 0; step < steps; step += 1) {
 
@@ -65,9 +69,6 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
     
     pthread_t *thread_ids = malloc(threads * sizeof(pthread_t));
     ThreadArgs *args = malloc(threads * sizeof(ThreadArgs));
-
-    pthread_barrier_init(&barrier, NULL, threads);
-
 
     int rows_per_thread = state->height / threads;
 
