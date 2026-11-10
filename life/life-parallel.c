@@ -17,17 +17,18 @@ void* thread_simulate(void* args) {
 
     ThreadArgs *thread_properties = (ThreadArgs *) args;
 
-    int board_height = thread_properties->height;
+    int start_row = thread_properties->start_row;
+    int end_row = thread_properties->end_row;
     LifeBoard *state = thread_properties->state;
     int steps = thread_properties->steps;
-    LifeBoard *next_state = LB_new(state->width, board_height);     
+    LifeBoard *next_state = LB_new(state->width, state->height);     
     
     for (int step = 0; step < steps; step += 1) {
 
         /* We use the range [1, width - 1) here instead of
          * [0, width) because we fix the edges to be all 0s.
          */
-        for (int y = 1; y < state->height - 1; y += 1) {
+        for (int y = start_row; y < end_row - 1; y += 1) {
             for (int x = 1; x < state->width - 1; x += 1) {
                 
                 /* For each cell, examine a 3x3 "window" of cells around it,
@@ -50,6 +51,7 @@ void* thread_simulate(void* args) {
         /* now that we computed next_state, make it the current state */
         pthread_barrier_wait(&barrier);
         LB_swap(state, next_state);
+        pthread_barrier_wait(&barrier);
     }
     LB_del(next_state);
     return NULL;
@@ -60,9 +62,12 @@ void* thread_simulate(void* args) {
 }
 
 void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
-
+    
     pthread_t *thread_ids = malloc(threads * sizeof(pthread_t));
     ThreadArgs *args = malloc(threads * sizeof(ThreadArgs));
+
+    pthread_barrier_init(&barrier, NULL, threads);
+
 
     int rows_per_thread = state->height / threads;
 
@@ -82,6 +87,8 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
     for (int t = 0; t < threads; t++) {
         pthread_join(thread_ids[t], NULL);
     }
+
+    pthread_barrier_destroy(&barrier);
 
     free(thread_ids);
     free(args);
