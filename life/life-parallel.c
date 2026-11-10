@@ -30,7 +30,17 @@ void* thread_simulate(void* args) {
         /* We use the range [1, width - 1) here instead of
          * [0, width) because we fix the edges to be all 0s.
          */
-        for (int y = start_row; y < end_row - 1; y += 1) {
+        // Clamp y start and end values.
+        int y_start = start_row;
+        int y_end = end_row;
+        if (start_row < 1) {
+            y_start = 1;
+        }
+        if (end_row > state->height - 1) {
+            y_end = state->height - 1;
+        }
+
+        for (int y = y_start; y < y_end; y += 1) {
             for (int x = 1; x < state->width - 1; x += 1) {
                 
                 /* For each cell, examine a 3x3 "window" of cells around it,
@@ -52,7 +62,9 @@ void* thread_simulate(void* args) {
         
         /* now that we computed next_state, make it the current state */
         pthread_barrier_wait(thread_barrier);
-        LB_swap(state, next_state);
+        if (thread_properties->thread_id == 0){
+            LB_swap(state, next_state);
+        }
         pthread_barrier_wait(thread_barrier);
     }
     LB_del(next_state);
@@ -69,19 +81,29 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
     ThreadArgs *args = malloc(threads * sizeof(ThreadArgs));
 
     int rows_per_thread = state->height / threads;
+    int remainder = state->height % threads;
+    int current_row = 0;
 
     pthread_barrier_t call_barrier;
     pthread_barrier_init(&call_barrier, NULL, threads);
 
     for (int t = 0; t < threads; t++) {
+        // Makes sure all rows are processed by giving remaining rows to threads when the height of the board is not
+        // divisible by the number of threads.
+        int assigned_rows = rows_per_thread;
+        if (t < remainder) {
+            assigned_rows += 1;
+        }
 
         args[t].thread_id = t;
-        args[t].start_row = rows_per_thread * t;
-        args[t].end_row = args[t].start_row + rows_per_thread;
-        args[t].height = rows_per_thread;
+        args[t].start_row = current_row;
+        args[t].end_row = current_row + assigned_rows;
+        args[t].height = assigned_rows;
         args[t].state = state;
         args[t].steps = steps;
         args[t].barrier = &call_barrier;
+
+        current_row += assigned_rows;
 
         pthread_create(&thread_ids[t], NULL, thread_simulate, &args[t]);
 
