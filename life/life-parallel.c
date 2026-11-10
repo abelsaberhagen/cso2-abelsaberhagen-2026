@@ -1,28 +1,26 @@
 #include "life.h"
 #include <pthread.h>
+#include <stdlib.h>
 
 pthread_barrier_t barrier;
 
-LifeBoard* create_board() {
-    int new_width = (state->width)/threads;
-    int new_height = (state->height)/threads;
+typedef struct {
+    int thread_id;
+    int start_row;
+    int end_row;
+    int height;
+    LifeBoard *state;
+    int steps;
+} ThreadArgs;
 
-    LifeBoard *next_state = LB_new(new_width, new_height);    
-}
+void* thread_simulate(void* args) {
 
-void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
+    ThreadArgs *thread_properties = (ThreadArgs *) args;
 
-    pthread_t lb_thread;
-
-    for (int t = 0; t < threads; t++) {
-
-        int new_width = state->width/threads;
-        int new_height = state->height/threads;
-
-        pthread_create(create_board())
-
-    }
-    LifeBoard *next_state = LB_new(state->width, state->height);    
+    int board_height = thread_properties->height;
+    LifeBoard *state = thread_properties->state;
+    int steps = thread_properties->steps;
+    LifeBoard *next_state = LB_new(state->width, board_height);     
     
     for (int step = 0; step < steps; step += 1) {
 
@@ -50,7 +48,42 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         }
         
         /* now that we computed next_state, make it the current state */
+        pthread_barrier_wait(&barrier);
         LB_swap(state, next_state);
     }
     LB_del(next_state);
+    return NULL;
+    
+
+
+
 }
+
+void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
+
+    pthread_t *thread_ids = malloc(threads * sizeof(pthread_t));
+    ThreadArgs *args = malloc(threads * sizeof(ThreadArgs));
+
+    int rows_per_thread = state->height / threads;
+
+    for (int t = 0; t < threads; t++) {
+
+        args[t].thread_id = t;
+        args[t].start_row = rows_per_thread * t;
+        args[t].end_row = args[t].start_row + rows_per_thread;
+        args[t].height = rows_per_thread;
+        args[t].state = state;
+        args[t].steps = steps;
+
+        pthread_create(&thread_ids[t], NULL, thread_simulate, &args[t]);
+
+    }
+
+    for (int t = 0; t < threads; t++) {
+        pthread_join(thread_ids[t], NULL);
+    }
+
+    free(thread_ids);
+    free(args);
+}
+
