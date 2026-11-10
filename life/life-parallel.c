@@ -68,7 +68,6 @@ void* thread_simulate(void* args) {
         }
         pthread_barrier_wait(thread_barrier);
     }
-    LB_del(next_state);
     return NULL;
     
 
@@ -88,7 +87,7 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
     pthread_barrier_t call_barrier;
     pthread_barrier_init(&call_barrier, NULL, threads);
 
-    LifeBoard *next_state = LB_new(state->width, state->height); 
+    LifeBoard *shared_next_state = LB_new(state->width, state->height); 
 
     for (int t = 0; t < threads; t++) {
         // Makes sure all rows are processed by giving remaining rows to threads when the height of the board is not
@@ -103,7 +102,7 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         args[t].end_row = current_row + assigned_rows;
         args[t].height = assigned_rows;
         args[t].state = state;
-        args[t].next_state = next_state;
+        args[t].next_state = shared_next_state;
         args[t].steps = steps;
         args[t].barrier = &call_barrier;
 
@@ -117,6 +116,7 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         pthread_join(thread_ids[t], NULL);
     }
 
+    LB_del(shared_next_state);
     pthread_barrier_destroy(&call_barrier);
 
     free(thread_ids);
